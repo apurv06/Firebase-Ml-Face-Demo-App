@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/blackTranslucent"
+        >
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/blackTranslucent"
+            app:title="Giscle"
+            >
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textSize="20dp"
+                android:textColor="@android:color/white"
+                android:id="@+id/text_title"/>
+        </android.support.v7.widget.Toolbar>
+
+    </android.support.design.widget.AppBarLayout>
+
+
+    <com.example.apurvchaudhary.cameratest.others.CameraSourcePreview
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <com.example.apurvchaudhary.cameratest.others.GraphicOverlay
+            android:id="@+id/faceOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.example.apurvchaudhary.cameratest.others.CameraSourcePreview>
+
+
+
+    <ImageView
+        android:id="@+id/ivAutoFocus"
+        android:contentDescription="@null"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/btn_autofocus"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:background="@color/blackTranslucent2"
+        android:layout_gravity="center|bottom"
+        android:layout_height="wrap_content">
+        <android.support.design.widget.CoordinatorLayout
+            android:layout_width="match_parent"
+            android:layout_margin="10dp"
+            android:id="@+id/parent_home"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/fab"
+                android:layout_width="80dp"
+                android:layout_gravity="center|bottom"
+                android:gravity="center_horizontal"
+                android:layout_height="80dp"
+                android:background="@drawable/camera_button"
+                android:padding="10dp"
+                />
+
+            <Button
+                android:id="@+id/fab_switch"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignEnd="@+id/capture"
+                android:background="@drawable/camera_button_rotate"
+                android:layout_marginLeft="250dp"
+                app:layout_anchor="@id/fab"
+                app:layout_anchorGravity="center_vertical|end" />
+        </android.support.design.widget.CoordinatorLayout>
+
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="200dp"
+        android:visibility="gone"
+        android:layout_height="200dp"
+        android:layout_gravity="center_horizontal|center_vertical"
+        android:elevation="100dp"
+        android:background="@android:color/transparent"
+        android:id="@+id/rotation_suggestion"
+        />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyle"
+        android:visibility="invisible"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</android.support.design.widget.CoordinatorLayout>
+
+
+
