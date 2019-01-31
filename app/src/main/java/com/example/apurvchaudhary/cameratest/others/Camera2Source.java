@@ -43,6 +43,7 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.widget.Toast;
 
+import com.example.apurvchaudhary.cameratest.faceListener;
 import com.example.apurvchaudhary.cameratest.utils.Utils;
 import com.google.android.gms.common.images.Size;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
@@ -200,6 +201,8 @@ public class Camera2Source {
     private AutoFitTextureView mTextureView;
 
     private ShutterCallback mShutterCallback;
+
+    faceListener faceListener;
 
     private AutoFocusCallback mAutoFocusCallback;
 
@@ -401,7 +404,7 @@ public class Camera2Source {
          * Creates a camera source builder with the supplied context and detector.  Camera preview
          * images will be streamed to the associated detector upon starting the camera source.
          */
-        public Builder(Context context, FaceDetectionProcessor detector,GraphicOverlay mGraphicOverlay) {
+        public Builder(Context context, FaceDetectionProcessor detector,GraphicOverlay mGraphicOverlay,faceListener faceListener) {
             if (context == null) {
                 throw new IllegalArgumentException("No context supplied.");
             }
@@ -410,6 +413,7 @@ public class Camera2Source {
             }
 
             mDetector = detector;
+            mCameraSource.faceListener=faceListener;
             mCameraSource.mGraphicOverlay=mGraphicOverlay;
             mCameraSource.mContext = context;
         }
@@ -1177,7 +1181,7 @@ public class Camera2Source {
             // We configure the size of default buffer to be the size of camera preview we want.
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
-            mImageReaderPreview = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.YUV_420_888, 1);
+            mImageReaderPreview = ImageReader.newInstance(mPreviewSize.getWidth(), mPreviewSize.getHeight(), ImageFormat.JPEG, 1);
             mImageReaderPreview.setOnImageAvailableListener(mOnPreviewAvailableListener, mBackgroundHandler);
 
             // This is the output Surface we need to start preview.
@@ -1357,7 +1361,7 @@ public class Camera2Source {
                 // frame.
 
                 try {
-                    mDetector.process(outputFrame.getBitmapForDebugging(),mGraphicOverlay);
+                    mDetector.process(outputFrame.getBitmapForDebugging(),mGraphicOverlay,faceListener);
                 } catch (Throwable t) {
                     Log.e(TAG, "Exception thrown from receiver.", t);
                 }
@@ -1400,12 +1404,15 @@ public class Camera2Source {
         // Converting YUV_420_888 data to NV21.
         byte[] data;
         ByteBuffer buffer0 = imgYUV420.getPlanes()[0].getBuffer();
+        ByteBuffer buffer1=imgYUV420.getPlanes()[1].getBuffer();
         ByteBuffer buffer2 = imgYUV420.getPlanes()[2].getBuffer();
         int buffer0_size = buffer0.remaining();
+        int buffer1_size=buffer1.remaining();
         int buffer2_size = buffer2.remaining();
-        data = new byte[buffer0_size + buffer2_size];
+        data = new byte[buffer0_size +buffer1_size+ buffer2_size];
         buffer0.get(data, 0, buffer0_size);
-        buffer2.get(data, buffer0_size, buffer2_size);
+        buffer1.get(data,buffer0_size,buffer1_size);
+        buffer2.get(data, buffer0_size+buffer1_size, buffer2_size);
         return data;
     }
 

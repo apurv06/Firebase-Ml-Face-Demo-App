@@ -6,19 +6,17 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Rect;
 import android.media.Image;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -27,55 +25,30 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-import com.example.apurvchaudhary.cameratest.models.APIFaceData;
 import com.example.apurvchaudhary.cameratest.others.Camera2Source;
 import com.example.apurvchaudhary.cameratest.others.CameraSource;
 import com.example.apurvchaudhary.cameratest.others.CameraSourcePreview;
 import com.example.apurvchaudhary.cameratest.others.FaceDetectionProcessor;
 import com.example.apurvchaudhary.cameratest.others.FaceGraphic;
 import com.example.apurvchaudhary.cameratest.others.GraphicOverlay;
-import com.example.apurvchaudhary.cameratest.retrofit.APIClient;
-import com.example.apurvchaudhary.cameratest.retrofit.APIInterface;
-import com.example.apurvchaudhary.cameratest.utils.Preferences;
 import com.example.apurvchaudhary.cameratest.utils.Utils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
-import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 
 
-import java.io.ByteArrayOutputStream;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
 
 
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements faceListener {
     private static final String TAG = "Camera";
     private Context context;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
@@ -166,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPictureTaken(Image img) {
             Log.d(TAG, "Taken picture is here!");
+            Toast.makeText(context, "Image taken", Toast.LENGTH_SHORT).show();
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -180,100 +154,8 @@ public class MainActivity extends AppCompatActivity {
             img.close();
             FileOutputStream out = null;
             try {
-
-
-                FirebaseVisionFaceDetectorOptions options = new FirebaseVisionFaceDetectorOptions.Builder()
-                        .setPerformanceMode(FirebaseVisionFaceDetectorOptions.FAST)
-                        .enableTracking()
-                        .setMinFaceSize(0.15f).build();
-                FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(picture);
-                FirebaseVisionFaceDetector detector = FirebaseVision.getInstance().getVisionFaceDetector(options);
-                detector.detectInImage(image).addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionFace>>() {
-
-                    private byte[] getCroppedImage(Rect rect){
-
-                        Bitmap croppedBmp;
-                        int x=rect.left;
-                        int y=rect.top;
-                        int w=rect.right - rect.left;
-                        int h=rect.bottom - rect.top;
-                        int maxH=picture.getHeight();
-                        int maxW=picture.getWidth();
-
-                        if(x<0)
-                            x=0;
-                        if(y<0)
-                            y=0;
-
-                        if(x+w<=maxW&&y+h<=maxH)
-                            croppedBmp = Bitmap.createBitmap(picture, x, y,w,h );
-                        else
-                        {
-                            if (x+w>maxW&&y+h>maxH)
-                            {
-                                croppedBmp=Bitmap.createBitmap(picture,0,0,maxW,maxH);
-                            }
-                            else if(x+w>maxW)
-                            {
-                                croppedBmp=Bitmap.createBitmap(picture,0,y,maxW,h);
-                            }
-                            else
-                            {
-                                croppedBmp=Bitmap.createBitmap(picture,x,0,w,maxH);
-                            }
-                        }
-                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                        croppedBmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                        return stream.toByteArray();
-                    }
-
-                    @Override
-                    public void onSuccess(List<FirebaseVisionFace> firebaseVisionFaces) {
-                        Toast.makeText(MainActivity.this, firebaseVisionFaces.size() + " Faces",
-                                Toast.LENGTH_SHORT).show();
-                        for(FirebaseVisionFace face : firebaseVisionFaces) {
-                            MediaType mediaType = MediaType.parse("multipart/form-data");
-                            RequestBody requestBody = RequestBody.create(mediaType, getCroppedImage(face.getBoundingBox()));
-                            MultipartBody.Part body = MultipartBody.Part.createFormData("img1", "a.jpg", requestBody);
-                            RequestBody apiKey = RequestBody.create(mediaType, Constant.API_KEY);
-                            RequestBody secretKey = RequestBody.create(mediaType, Constant.API_SECRET);
-                            RequestBody folderKey = RequestBody.create(mediaType, "DEMO");
-
-                            APIInterface apiInterface = APIClient.getRetrofit(MainActivity.this).create(APIInterface.class);
-                            Call<APIFaceData> data = apiInterface.faceSearch(body, secretKey, apiKey, folderKey);
-                            data.enqueue(new Callback<APIFaceData>() {
-                                @Override
-                                public void onResponse(@NonNull Call<APIFaceData> call, @NonNull Response<APIFaceData> response) {
-                                    if(response.body() == null || response.body().getResult().size() == 0) {
-                                        Toast.makeText(MainActivity.this, "Not Detected", Toast.LENGTH_SHORT).show();
-                                        return;
-                                    }
-                                    final String faceTag = response.body().getResult().get(0).getPerson();
-                                    View parentLayout = findViewById(R.id.parent_home);
-                                    final Snackbar snackbar = Snackbar.make(parentLayout, "Attendance for employee Id "+faceTag+" registered", Snackbar.LENGTH_INDEFINITE);
-                                    snackbar.setAction("Ok", new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View v) {
-                                            if (snackbar.isShown())
-                                            {
-                                                snackbar.dismiss();
-                                            }
-                                        }
-                                    });
-                                    snackbar.show();
-
-                                }
-
-                                @Override
-                                public void onFailure(@NonNull Call<APIFaceData> call, @NonNull Throwable t) {
-                                    Utils.showErrorDialog(MainActivity.this, "API Error!", t.getLocalizedMessage());
-                                }
-                            });
-                        }
-                    }
-                });
-
-
+                out = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "/camera_picture.png"));
+                picture.compress(Bitmap.CompressFormat.JPEG, 95, out);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -292,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPictureTaken(Bitmap picture) {
             Log.d(TAG, "Taken picture is here!");
+            Toast.makeText(context, "Image taken", Toast.LENGTH_SHORT).show();
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -367,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
     private void createCameraSourceFront() {
 
         if(useCamera2) {
-            mCamera2Source = new Camera2Source.Builder(context, new FaceDetectionProcessor(this), mGraphicOverlay)
+            mCamera2Source = new Camera2Source.Builder(context, new FaceDetectionProcessor(this), mGraphicOverlay,this)
                     .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
                     .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
                     .setFacing(Camera2Source.CAMERA_FACING_FRONT)
@@ -393,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void createCameraSourceBack() {
         if(useCamera2) {
-            mCamera2Source = new Camera2Source.Builder(context, new FaceDetectionProcessor(this),mGraphicOverlay)
+            mCamera2Source = new Camera2Source.Builder(context, new FaceDetectionProcessor(this),mGraphicOverlay,this)
                     .setFocusMode(Camera2Source.CAMERA_AF_AUTO)
                     .setFlashMode(Camera2Source.CAMERA_FLASH_AUTO)
                     .setFacing(Camera2Source.CAMERA_FACING_BACK)
@@ -523,10 +406,6 @@ public class MainActivity extends AppCompatActivity {
         		startCameraSource();
         	}
 
-        mInTime = String.format(Locale.US, "%02d", Preferences.getInHour(this)) + ":" +
-                String.format(Locale.US, "%02d", Preferences.getInMin(this));
-        mOutTime = String.format(Locale.US, "%02d", Preferences.getOutHour(this)) + ":" +
-                String.format(Locale.US, "%02d", Preferences.getOutMin(this));
     }
 
     @Override
@@ -546,6 +425,46 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+
+    @Override
+    public void faceDetected(FirebaseVisionFace face, Bitmap bitmap) {
+
+        detect d=new detect();
+        d.execute(new Pair(face,bitmap));
+
+    }
+
+    class Pair
+    {
+        FirebaseVisionFace face;
+
+        public Pair(FirebaseVisionFace face, Bitmap picture) {
+            this.face = face;
+            this.picture = picture;
+        }
+
+        public FirebaseVisionFace getFace() {
+            return face;
+        }
+
+        public Bitmap getPicture() {
+            return picture;
+        }
+
+        Bitmap picture;
+    }
+
+    class detect extends AsyncTask<Pair,Void,String>
+    {
+
+        @Override
+        protected String doInBackground(Pair... obj) {
+
+
+            return "BackGround";
         }
     }
 }

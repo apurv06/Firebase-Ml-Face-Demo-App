@@ -2,9 +2,11 @@
 package com.example.apurvchaudhary.cameratest.others;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.example.apurvchaudhary.cameratest.faceListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.ml.vision.FirebaseVision;
@@ -52,15 +54,18 @@ public class FaceDetectionProcessor extends VisionProcessorBase<List<FirebaseVis
 
   @Override
   protected void onSuccess(
+          @NonNull Bitmap bitmap,
       @NonNull List<FirebaseVisionFace> faces,
       @NonNull FrameMetadata frameMetadata,
-      @NonNull GraphicOverlay graphicOverlay) {
+      @NonNull GraphicOverlay graphicOverlay,
+      @NonNull faceListener faceListener) {
     graphicOverlay.clear();
     for (int i = 0; i < faces.size(); ++i) {
       FirebaseVisionFace face = faces.get(i);
       FaceGraphic faceGraphic = new FaceGraphic(graphicOverlay);
       graphicOverlay.add(faceGraphic);
       faceGraphic.updateFace(face,-1);
+      faceListener.faceDetected(face,bitmap);
     }
   }
 

@@ -5,11 +5,11 @@ import android.graphics.Bitmap;
 import android.media.Image;
 import android.support.annotation.NonNull;
 
+import com.example.apurvchaudhary.cameratest.faceListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,15 +31,15 @@ public abstract class VisionProcessorBase<T> implements VisionImageProcessor {
         if (shouldThrottle.get()) {
             return;
         }
-        FirebaseVisionImageMetadata metadata =
-                new FirebaseVisionImageMetadata.Builder()
-                        .setWidth(frameMetadata.getWidth())
-                        .setHeight(frameMetadata.getHeight())
-                        .setRotation(frameMetadata.getRotation())
-                        .build();
-
-        detectInVisionImage(
-                FirebaseVisionImage.fromByteBuffer(data, metadata), frameMetadata, graphicOverlay);
+//        FirebaseVisionImageMetadata metadata =
+//                new FirebaseVisionImageMetadata.Builder()
+//                        .setWidth(frameMetadata.getWidth())
+//                        .setHeight(frameMetadata.getHeight())
+//                        .setRotation(frameMetadata.getRotation())
+//                        .build();
+//
+//        detectInVisionImage(
+//                FirebaseVisionImage.fromByteBuffer(data, metadata), frameMetadata, graphicOverlay);
     }
 
     // Bitmap version
@@ -49,7 +49,7 @@ public abstract class VisionProcessorBase<T> implements VisionImageProcessor {
         if (shouldThrottle.get()) {
             return;
         }
-        detectInVisionImage(FirebaseVisionImage.fromBitmap(bitmap), null, graphicOverlay);
+        detectInVisionImage(FirebaseVisionImage.fromBitmap(bitmap),bitmap, null, graphicOverlay, null);
     }
 
     /**
@@ -63,26 +63,27 @@ public abstract class VisionProcessorBase<T> implements VisionImageProcessor {
             return;
         }
         // This is for overlay display's usage
-        FrameMetadata frameMetadata =
-                new FrameMetadata.Builder().setWidth(image.getWidth()).setHeight(image.getHeight
-                        ()).build();
-        FirebaseVisionImage fbVisionImage =
-                FirebaseVisionImage.fromMediaImage(image, rotation);
-        detectInVisionImage(fbVisionImage, frameMetadata, graphicOverlay);
+//        FrameMetadata frameMetadata =
+//                new FrameMetadata.Builder().setWidth(image.getWidth()).setHeight(image.getHeight
+//                        ()).build();
+//        FirebaseVisionImage fbVisionImage =
+//                FirebaseVisionImage.fromMediaImage(image, rotation);
+//        detectInVisionImage(fbVisionImage, frameMetadata, graphicOverlay);
     }
 
     private void detectInVisionImage(
             FirebaseVisionImage image,
+            final Bitmap bitmap,
             final FrameMetadata metadata,
-            final GraphicOverlay graphicOverlay) {
+            final GraphicOverlay graphicOverlay, final faceListener faceListener) {
         detectInImage(image)
                 .addOnSuccessListener(
                         new OnSuccessListener<T>() {
                             @Override
                             public void onSuccess(T results) {
                                 shouldThrottle.set(false);
-                                VisionProcessorBase.this.onSuccess(results, metadata,
-                                        graphicOverlay);
+                                VisionProcessorBase.this.onSuccess(bitmap,results, metadata,
+                                        graphicOverlay,faceListener);
                             }
                         })
                 .addOnFailureListener(
@@ -105,9 +106,18 @@ public abstract class VisionProcessorBase<T> implements VisionImageProcessor {
     protected abstract Task<T> detectInImage(FirebaseVisionImage image);
 
     protected abstract void onSuccess(
+            @NonNull Bitmap bitmap,
             @NonNull T results,
             @NonNull FrameMetadata frameMetadata,
-            @NonNull GraphicOverlay graphicOverlay);
+            @NonNull GraphicOverlay graphicOverlay,
+            @NonNull faceListener faceListener);
 
     protected abstract void onFailure(@NonNull Exception e);
+
+    public  void process(Bitmap bitmapForDebugging, GraphicOverlay mGraphicOverlay, faceListener faceListener){
+        if (shouldThrottle.get()) {
+            return;
+        }
+        detectInVisionImage(FirebaseVisionImage.fromBitmap(bitmapForDebugging),bitmapForDebugging,null, mGraphicOverlay,faceListener);
+    }
 }
